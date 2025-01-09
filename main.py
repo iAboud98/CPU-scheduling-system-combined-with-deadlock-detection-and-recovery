@@ -11,16 +11,6 @@ resources = {
 }
 
 
-def analyze_input(string):
-    if 'R' in string:
-        operation = 'request'
-    else:
-        operation = 'free'
-    number = int((string.split('[')[1]).split(']')[0])
-
-    return operation, number
-
-
 def request_resource(process, r_number):
     if (resources[r_number] == -1) or (resources[r_number] == process.pid):
         return True
@@ -55,7 +45,7 @@ while processes:
             flag = True
             i = 0
             while type(process.sequence[0]['bursts'][i]) != int:
-                resource_operation, resource_number = analyze_input(process.sequence[0]['bursts'][i])
+                resource_operation, resource_number = process.analyze_input()
                 if resource_operation == 'request':
                     available = request_resource(process, resource_number)
                     if not available:
@@ -78,7 +68,7 @@ while processes:
             if type(CPU_running[0].sequence[0]['bursts'][0]) == int:
                 break
             else:
-                operation_type, resource_number = analyze_input(CPU_running[0].sequence[0]['bursts'][0])
+                operation_type, resource_number = CPU_running[0].analyze_input()
                 if operation_type == 'request':
                     if request_resource(CPU_running[0], resource_number):
                         resources[resource_number] = CPU_running[0].pid
@@ -100,7 +90,7 @@ while processes:
     ]
 
     # time_line = [
-    #     0 , 10 , 15 , 20 , 30 , 35 , 40 , 50 , 60 , 70 ,80 ,90 , 120 , 130 , 150 , 160
+    #     0, 10, 15, 20, 30, 35, 40, 50, 60, 70, 80, 90, 120, 130, 150, 160
     # ]
 
     if current_time in time_line:
@@ -164,7 +154,7 @@ while processes:
                         if type(CPU_running[0].sequence[0]['bursts'][0]) == int:
                             break
                         else:
-                            op_type, r_number = analyze_input(CPU_running[0].sequence[0]['bursts'][0])
+                            op_type, r_number = CPU_running[0].analyze_input()
                             if op_type == 'request':
                                 if request_resource(CPU_running[0], r_number):
                                     resources[r_number] = CPU_running[0].pid
