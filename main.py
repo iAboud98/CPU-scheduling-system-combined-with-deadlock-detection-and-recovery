@@ -1,22 +1,9 @@
 from read_from_file import processes
+from ResourceManager import ResourceManager
 
 QUANTUM = 2
 
-resources = {
-    1: -1,
-    2: -1,
-    3: -1,
-    4: -1,
-    5: -1
-}
-
-
-def request_resource(process, r_number):
-    if (resources[r_number] == -1) or (resources[r_number] == process.pid):
-        return True
-    else:
-        return False
-
+resource_manager = ResourceManager()
 
 current_time = 0
 
@@ -47,8 +34,8 @@ while processes:
             while not isinstance(process.sequence[0]['bursts'][i], int):
                 resource_operation, resource_number = process.analyze_input()
                 if resource_operation == 'request':
-                    available = request_resource(process, resource_number)
-                    if not available:
+                    r = resource_manager.request_resource(resource_number)
+                    if r is not None and not r.is_available():
                         flag = False
                 i += 1
 
@@ -69,15 +56,20 @@ while processes:
                 break
             else:
                 operation_type, resource_number = CPU_running[0].analyze_input()
+                r = resource_manager.request_resource(resource_number)
                 if operation_type == 'request':
-                    if request_resource(CPU_running[0], resource_number):
-                        resources[resource_number] = CPU_running[0].pid
+                    if r is None:
+                        resource_manager.add_resource(resource_number)
+                        resource_manager.assign_resource(resource_number, CPU_running[0].pid)
                     else:
-                        CPU_waiting.append(CPU_running[0])
-                        CPU_running.pop(0)
-                        break
+                        if r.is_available():
+                            resource_manager.assign_resource(resource_number, CPU_running[0].pid)
+                        else:
+                            CPU_waiting.append(CPU_running[0])
+                            CPU_running.pop(0)
+                            break
                 elif operation_type == 'free':
-                    resources[resource_number] = -1
+                    r.free_resource()
                 CPU_running[0].sequence[0]['bursts'].pop(0)
 
     time_line = [
@@ -99,7 +91,7 @@ while processes:
         print(f"cpu_ready -> {[process.pid for process in CPU_ready]}")
         print(f"cpu_waiting -> {[process.pid for process in CPU_waiting]}")
         print(f"io_running -> {[process.pid for process in IO_running]}")
-        print(f"resources -> {resources}")
+        print(resource_manager.print_resources())
         print(f"quantum -> {quantum}")
         print("-----------------------------------------------------------------")
 
@@ -155,22 +147,27 @@ while processes:
                             break
                         else:
                             op_type, r_number = CPU_running[0].analyze_input()
+                            r = resource_manager.request_resource(r_number)
                             if op_type == 'request':
-                                if request_resource(CPU_running[0], r_number):
-                                    resources[r_number] = CPU_running[0].pid
+                                if r is None:
+                                    resource_manager.add_resource(r_number)
+                                    resource_manager.assign_resource(r_number, CPU_running[0].pid)
                                 else:
-                                    CPU_waiting.append(CPU_running[0])
-                                    CPU_running.pop(0)
-                                    quantum = QUANTUM
-                                    break
+                                    if r.is_available():
+                                        resource_manager.assign_resource(r_number, CPU_running[0].pid)
+                                    else:
+                                        CPU_waiting.append(CPU_running[0])
+                                        CPU_running.pop(0)
+                                        break
                             elif op_type == 'free':
-                                resources[r_number] = -1
+                                r.free_resource()
                             CPU_running[0].sequence[0]['bursts'].pop(0)
 
                     if CPU_running and not CPU_running[0].sequence[0]['bursts']:  # 1
                         CPU_running[0].sequence.pop(0)
                         if not CPU_running[0].sequence:
-                            index_v2 = [i for i, process in enumerate(processes) if process.pid == CPU_running[0].pid][0]
+                            index_v2 = [i for i, process in enumerate(processes) if process.pid == CPU_running[0].pid][
+                                0]
                             processes.pop(index_v2)
                         else:
                             CPU_ready.append(CPU_running[0])

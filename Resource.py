@@ -15,3 +15,7 @@ class Resource:
     def assign_resource(self, pid):
         self.available = False
         self.current_attach = pid
+
+    def free_resource(self):
+        self.available = True
+        self.current_attach = None

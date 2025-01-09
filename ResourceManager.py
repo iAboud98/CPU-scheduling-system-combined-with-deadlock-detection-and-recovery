@@ -19,6 +19,10 @@ class ResourceManager:
         resource = self.request_resource(resource_num)
         resource.assign_resource(pid)
 
+    def free_resource(self, resource_num):
+        resource = self.request_resource(resource_num)
+        resource.free_resource()
+
     def print_resources(self):
         for resource in self.resources_list:
             print(f"resource number -> {resource.resource_number}, availability -> {resource.available}, current "
