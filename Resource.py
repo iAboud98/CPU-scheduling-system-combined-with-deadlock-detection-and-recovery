@@ -1,5 +1,4 @@
 class Resource:
-
     def __init__(self, resource_number):
         self.resource_number = resource_number
         self.available = True
