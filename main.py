@@ -44,7 +44,7 @@ while processes:
         for process in CPU_waiting[:]:
             flag = True
             i = 0
-            while type(process.sequence[0]['bursts'][i]) != int:
+            while not isinstance(process.sequence[0]['bursts'][i], int):
                 resource_operation, resource_number = process.analyze_input()
                 if resource_operation == 'request':
                     available = request_resource(process, resource_number)
@@ -65,7 +65,7 @@ while processes:
                 break
 
         while CPU_running[0].sequence[0]['bursts']:
-            if type(CPU_running[0].sequence[0]['bursts'][0]) == int:
+            if isinstance(CPU_running[0].sequence[0]['bursts'][0], int):
                 break
             else:
                 operation_type, resource_number = CPU_running[0].analyze_input()
@@ -151,7 +151,7 @@ while processes:
                     quantum = QUANTUM
                 else:  # 2
                     while CPU_running[0].sequence[0]['bursts']:
-                        if type(CPU_running[0].sequence[0]['bursts'][0]) == int:
+                        if isinstance(CPU_running[0].sequence[0]['bursts'][0], int):
                             break
                         else:
                             op_type, r_number = CPU_running[0].analyze_input()
