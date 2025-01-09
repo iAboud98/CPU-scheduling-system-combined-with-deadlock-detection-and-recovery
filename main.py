@@ -114,7 +114,7 @@ while processes:
         print("-----------------------------------------------------------------")
 
     if IO_running:
-        for process in IO_running:
+        for process in IO_running[:]:
             process.sequence[0]['bursts'][0] -= 1
             if process.sequence[0]['bursts'][0] == 0:
                 process.sequence.pop(0)
@@ -171,6 +171,7 @@ while processes:
                                 else:
                                     CPU_waiting.append(CPU_running[0])
                                     CPU_running.pop(0)
+                                    quantum = QUANTUM
                                     break
                             elif op_type == 'free':
                                 resources[r_number] = -1
