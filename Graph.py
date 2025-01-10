@@ -21,6 +21,32 @@ class Graph:
         else:
             self.graph_dic[node].remove(edge)
 
+    def detect_cycle_util(self, node, visited, rec_stack):
+        """Utility function to detect cycles using DFS."""
+        visited.add(node)
+        rec_stack.add(node)
+
+        for neighbor in self.graph_dic.get(node, []):
+            if neighbor not in visited:
+                if self.detect_cycle_util(neighbor, visited, rec_stack):
+                    return True
+            elif neighbor in rec_stack:
+                return True
+
+        rec_stack.remove(node)
+        return False
+
+    def deadlock_detection(self):
+        """Detects deadlocks (cycles) in the graph."""
+        visited = set()
+        rec_stack = set()
+
+        for node in self.graph_dic:
+            if node not in visited:
+                if self.detect_cycle_util(node, visited, rec_stack):
+                    return True
+        return False
+
     def display(self):
         for node, edges in self.graph_dic.items():
             print(f"{node} -> {', '.join(edges)}")

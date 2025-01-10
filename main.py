@@ -2,7 +2,7 @@ from read_from_file import processes
 from ResourceManager import ResourceManager
 from Graph import Graph
 
-QUANTUM = 2
+QUANTUM = 10
 
 resource_manager = ResourceManager()
 
@@ -65,13 +65,19 @@ while processes:
                         resource_manager.add_resource(resource_number)
                         r = resource_manager.request_resource(resource_number)
                         RGA.add_connection("R"+str(r.resource_number), "P"+str(CPU_running[0].pid))
+                        if RGA.deadlock_detection():
+                            print("deadlock detected !")
                         resource_manager.assign_resource(resource_number, CPU_running[0].pid)
                     else:
                         if r.is_available():
                             RGA.add_connection("R"+str(r.resource_number), "P"+str(CPU_running[0].pid))
+                            if RGA.deadlock_detection():
+                                print("deadlock detected !")
                             resource_manager.assign_resource(resource_number, CPU_running[0].pid)
                         else:
                             RGA.add_connection("P"+str(CPU_running[0].pid), "R"+str(r.resource_number))
+                            if RGA.deadlock_detection():
+                                print("deadlock detected !")
                             CPU_waiting.append(CPU_running[0])
                             CPU_running.pop(0)
                             break
@@ -162,13 +168,19 @@ while processes:
                                     resource_manager.add_resource(r_number)
                                     r = resource_manager.request_resource(r_number)
                                     RGA.add_connection("R"+str(r.resource_number), "P"+str(CPU_running[0].pid))
+                                    if RGA.deadlock_detection():
+                                        print("deadlock detected !")
                                     resource_manager.assign_resource(r_number, CPU_running[0].pid)
                                 else:
                                     if r.is_available():
                                         RGA.add_connection("R"+str(r.resource_number), "P"+str(CPU_running[0].pid))
+                                        if RGA.deadlock_detection():
+                                            print("deadlock detected !")
                                         resource_manager.assign_resource(r_number, CPU_running[0].pid)
                                     else:
                                         RGA.add_connection("P"+str(CPU_running[0].pid), "R"+str(r.resource_number))
+                                        if RGA.deadlock_detection():
+                                            print("deadlock detected !")
                                         CPU_waiting.append(CPU_running[0])
                                         CPU_running.pop(0)
                                         break
