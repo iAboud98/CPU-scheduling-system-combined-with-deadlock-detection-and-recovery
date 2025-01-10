@@ -12,6 +12,7 @@ CPU_running = []
 CPU_ready = []
 CPU_waiting = []
 IO_running = []
+deadlock_processes = []
 quantum = QUANTUM
 
 RGA = Graph()
@@ -177,6 +178,7 @@ while processes:
                                         RGA.deadlock_detection()
                                         CPU_waiting.append(CPU_running[0])
                                         CPU_running.pop(0)
+                                        quantum = QUANTUM
                                         break
                             elif op_type == 'free':
                                 RGA.release_connection("R"+str(r.resource_number), "P"+str(CPU_running[0].pid))
