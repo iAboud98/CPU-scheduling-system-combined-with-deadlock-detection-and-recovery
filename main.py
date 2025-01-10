@@ -1,5 +1,6 @@
 from read_from_file import processes
 from ResourceManager import ResourceManager
+from Graph import Graph
 
 QUANTUM = 2
 
@@ -12,6 +13,8 @@ CPU_ready = []
 CPU_waiting = []
 IO_running = []
 quantum = QUANTUM
+
+RGA = Graph()
 
 while processes:
 
@@ -60,15 +63,20 @@ while processes:
                 if operation_type == 'request':
                     if r is None:
                         resource_manager.add_resource(resource_number)
+                        r = resource_manager.request_resource(resource_number)
+                        RGA.add_connection("P"+str(CPU_running[0].pid), "R"+str(r.resource_number))
                         resource_manager.assign_resource(resource_number, CPU_running[0].pid)
                     else:
                         if r.is_available():
+                            RGA.add_connection("P"+str(CPU_running[0].pid), "R"+str(r.resource_number))
                             resource_manager.assign_resource(resource_number, CPU_running[0].pid)
                         else:
+                            RGA.add_connection("R"+str(r.resource_number), "P"+str(CPU_running[0].pid))
                             CPU_waiting.append(CPU_running[0])
                             CPU_running.pop(0)
                             break
                 elif operation_type == 'free':
+                    RGA.release_connection("P"+str(CPU_running[0].pid), "R"+str(r.resource_number))
                     r.free_resource()
                 CPU_running[0].sequence[0]['bursts'].pop(0)
 
@@ -91,7 +99,8 @@ while processes:
         print(f"cpu_ready -> {[process.pid for process in CPU_ready]}")
         print(f"cpu_waiting -> {[process.pid for process in CPU_waiting]}")
         print(f"io_running -> {[process.pid for process in IO_running]}")
-        print(resource_manager.print_resources())
+        resource_manager.print_resources()
+        RGA.display()
         print(f"quantum -> {quantum}")
         print("-----------------------------------------------------------------")
 
@@ -151,15 +160,20 @@ while processes:
                             if op_type == 'request':
                                 if r is None:
                                     resource_manager.add_resource(r_number)
+                                    r = resource_manager.request_resource(r_number)
+                                    RGA.add_connection("P" + str(CPU_running[0].pid), "R" + str(r.resource_number))
                                     resource_manager.assign_resource(r_number, CPU_running[0].pid)
                                 else:
                                     if r.is_available():
+                                        RGA.add_connection("P" + str(CPU_running[0].pid), "R" + str(r.resource_number))
                                         resource_manager.assign_resource(r_number, CPU_running[0].pid)
                                     else:
+                                        RGA.add_connection("R" + str(r.resource_number), "P" + str(CPU_running[0].pid))
                                         CPU_waiting.append(CPU_running[0])
                                         CPU_running.pop(0)
                                         break
                             elif op_type == 'free':
+                                RGA.release_connection("P" + str(CPU_running[0].pid), "R" + str(r.resource_number))
                                 r.free_resource()
                             CPU_running[0].sequence[0]['bursts'].pop(0)
 
