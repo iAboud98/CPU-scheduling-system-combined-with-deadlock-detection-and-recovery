@@ -23,6 +23,11 @@ class ResourceManager:
         resource = self.request_resource(resource_num)
         resource.free_resource()
 
+    def release_all_resources(self, pid):
+        for resource in self.resources_list:
+            if resource.current_attach == pid:
+                self.free_resource(resource.resource_number)
+
     def print_resources(self):
         for resource in self.resources_list:
             print(f"resource number -> {resource.resource_number}, availability -> {resource.available}, current "
