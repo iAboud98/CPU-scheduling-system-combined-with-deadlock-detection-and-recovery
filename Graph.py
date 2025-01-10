@@ -49,6 +49,20 @@ class Graph:
         rec_stack.remove(node)
         return False
 
+    def release_process(self, process):
+        # Remove outgoing connections from the process (resources held by the process)
+        if process in self.graph_dic:
+            self.graph_dic.pop(process)
+
+        # Remove incoming connections to the process (resources requesting the process)
+        nodes_to_update = list(self.graph_dic.keys())
+        for node in nodes_to_update:
+            if process in self.graph_dic[node]:
+                self.graph_dic[node].remove(process)
+                # If the node has no more connections, remove it entirely
+                if not self.graph_dic[node]:
+                    self.graph_dic.pop(node)
+
     def deadlock_detection(self):
         visited = set()
         rec_stack = set()
@@ -65,7 +79,6 @@ class Graph:
                         processes_list.append(get_process(processes, process))
                     return True, processes_list
         return False, processes_list
-
 
     def display(self):
         for node, edges in self.graph_dic.items():
