@@ -64,19 +64,19 @@ while processes:
                     if r is None:
                         resource_manager.add_resource(resource_number)
                         r = resource_manager.request_resource(resource_number)
-                        RGA.add_connection("P"+str(CPU_running[0].pid), "R"+str(r.resource_number))
+                        RGA.add_connection("R"+str(r.resource_number), "P"+str(CPU_running[0].pid))
                         resource_manager.assign_resource(resource_number, CPU_running[0].pid)
                     else:
                         if r.is_available():
-                            RGA.add_connection("P"+str(CPU_running[0].pid), "R"+str(r.resource_number))
+                            RGA.add_connection("R"+str(r.resource_number), "P"+str(CPU_running[0].pid))
                             resource_manager.assign_resource(resource_number, CPU_running[0].pid)
                         else:
-                            RGA.add_connection("R"+str(r.resource_number), "P"+str(CPU_running[0].pid))
+                            RGA.add_connection("P"+str(CPU_running[0].pid), "R"+str(r.resource_number))
                             CPU_waiting.append(CPU_running[0])
                             CPU_running.pop(0)
                             break
                 elif operation_type == 'free':
-                    RGA.release_connection("P"+str(CPU_running[0].pid), "R"+str(r.resource_number))
+                    RGA.release_connection("R"+str(r.resource_number), "P"+str(CPU_running[0].pid))
                     r.free_resource()
                 CPU_running[0].sequence[0]['bursts'].pop(0)
 
@@ -161,19 +161,19 @@ while processes:
                                 if r is None:
                                     resource_manager.add_resource(r_number)
                                     r = resource_manager.request_resource(r_number)
-                                    RGA.add_connection("P" + str(CPU_running[0].pid), "R" + str(r.resource_number))
+                                    RGA.add_connection("R"+str(r.resource_number), "P"+str(CPU_running[0].pid))
                                     resource_manager.assign_resource(r_number, CPU_running[0].pid)
                                 else:
                                     if r.is_available():
-                                        RGA.add_connection("P" + str(CPU_running[0].pid), "R" + str(r.resource_number))
+                                        RGA.add_connection("R"+str(r.resource_number), "P"+str(CPU_running[0].pid))
                                         resource_manager.assign_resource(r_number, CPU_running[0].pid)
                                     else:
-                                        RGA.add_connection("R" + str(r.resource_number), "P" + str(CPU_running[0].pid))
+                                        RGA.add_connection("P"+str(CPU_running[0].pid), "R"+str(r.resource_number))
                                         CPU_waiting.append(CPU_running[0])
                                         CPU_running.pop(0)
                                         break
                             elif op_type == 'free':
-                                RGA.release_connection("P" + str(CPU_running[0].pid), "R" + str(r.resource_number))
+                                RGA.release_connection("R"+str(r.resource_number), "P"+str(CPU_running[0].pid))
                                 r.free_resource()
                             CPU_running[0].sequence[0]['bursts'].pop(0)
 
