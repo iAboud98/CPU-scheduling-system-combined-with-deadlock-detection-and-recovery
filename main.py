@@ -21,11 +21,14 @@ RGA = Graph()
 def deadlock_recovery(list_of_processes):
     for process in CPU_waiting:
         if process == min(p.priority for p in CPU_waiting) and process in deadlock_processes:
-            #1 release all resources assigned to it
+            #1 release all resources assigned to it // DONE
             #2 remove it from CPU_waiting
             #3 make it new
             #4 add it to CPU_ready
             resource_manager.release_all_resources(process.pid)
+            RGA.release_process("P"+process.pid)
+
+
 
 
 while processes:
