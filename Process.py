@@ -5,12 +5,6 @@ class Process:
         self.arrival_time = arrival_time
         self.priority = priority
         self.sequence = sequence
-        self.original_data = {  # Store the original state
-            'pid': pid,
-            'arrival_time': arrival_time,
-            'priority': priority,
-            'sequence': sequence.copy()  # Use copy to avoid reference issues
-        }
 
     def print_process(self):
         print(f"Process ID: {self.pid}, Arrival Time: {self.arrival_time}, Priority: {self.priority}, Sequence: "
@@ -25,9 +19,3 @@ class Process:
 
         return operation, number
 
-    def reset_to_original(self):
-
-        self.pid = self.original_data['pid']
-        self.arrival_time = self.original_data['arrival_time']
-        self.priority = self.original_data['priority']
-        self.sequence = self.original_data['sequence'].copy()  # Copy again to avoid reference issues

@@ -1,9 +1,11 @@
 from read_from_file import processes
 from ResourceManager import ResourceManager
 from Graph import Graph
+import copy
 
 QUANTUM = 10
 
+copy_processes = copy.deepcopy(processes)
 resource_manager = ResourceManager()
 
 current_time = 0
@@ -19,16 +21,21 @@ RGA = Graph()
 
 
 def deadlock_recovery(list_of_processes):
-    for process in CPU_waiting:
-        if process == min(p.priority for p in CPU_waiting) and process in deadlock_processes:
-            #1 release all resources assigned to it // DONE
-            #2 remove it from CPU_waiting
-            #3 make it new
-            #4 add it to CPU_ready
+    for process in CPU_waiting[:]:
+        if (process.priority == min(p.priority for p in CPU_waiting)) and (
+                any(process.pid == p.pid for p in list_of_processes)):
+            print(f"pid -> {process.pid}")
             resource_manager.release_all_resources(process.pid)
-            RGA.release_process("P"+process.pid)
-
-
+            RGA.release_process("P" + str(process.pid))
+            CPU_waiting.remove(process)
+            processes.remove(process)
+            for p in copy_processes:
+                if p.pid == process.pid:
+                    fresh_process = p
+            processes.append(fresh_process)
+            CPU_ready.append(fresh_process)
+            deadlock_processes.clear()
+            break
 
 
 while processes:
@@ -80,24 +87,18 @@ while processes:
                         resource_manager.add_resource(resource_number)
                         r = resource_manager.request_resource(resource_number)
                         RGA.add_connection("R" + str(r.resource_number), "P" + str(CPU_running[0].pid))
-                        deadlock_flag, deadlock_processes = RGA.deadlock_detection()
-                        if deadlock_flag:
-                            deadlock_recovery(deadlock_processes)
                         resource_manager.assign_resource(resource_number, CPU_running[0].pid)
                     else:
                         if r.is_available():
                             RGA.add_connection("R" + str(r.resource_number), "P" + str(CPU_running[0].pid))
-                            deadlock_flag, deadlock_processes = RGA.deadlock_detection()
-                            if deadlock_flag:
-                                deadlock_recovery(deadlock_processes)
                             resource_manager.assign_resource(resource_number, CPU_running[0].pid)
                         else:
                             RGA.add_connection("P" + str(CPU_running[0].pid), "R" + str(r.resource_number))
                             deadlock_flag, deadlock_processes = RGA.deadlock_detection()
-                            if deadlock_flag:
-                                deadlock_recovery(deadlock_processes)
                             CPU_waiting.append(CPU_running[0])
                             CPU_running.pop(0)
+                            if deadlock_flag:
+                                deadlock_recovery(deadlock_processes)
                             break
                 elif operation_type == 'free':
                     RGA.release_connection("R" + str(r.resource_number), "P" + str(CPU_running[0].pid))
@@ -119,6 +120,8 @@ while processes:
 
     if current_time in time_line:
         print(f"current time -> {current_time}")
+        print(f"processes left ->")
+        [process.print_process() for process in processes]
         print(f"cpu_running -> {[process.pid for process in CPU_running]}")
         print(f"cpu_ready -> {[process.pid for process in CPU_ready]}")
         print(f"cpu_waiting -> {[process.pid for process in CPU_waiting]}")
@@ -187,25 +190,19 @@ while processes:
                                     resource_manager.add_resource(r_number)
                                     r = resource_manager.request_resource(r_number)
                                     RGA.add_connection("R" + str(r.resource_number), "P" + str(CPU_running[0].pid))
-                                    deadlock_flag, deadlock_processes = RGA.deadlock_detection()
-                                    if deadlock_flag:
-                                        deadlock_recovery(deadlock_processes)
                                     resource_manager.assign_resource(r_number, CPU_running[0].pid)
                                 else:
                                     if r.is_available():
                                         RGA.add_connection("R" + str(r.resource_number), "P" + str(CPU_running[0].pid))
-                                        deadlock_flag, deadlock_processes = RGA.deadlock_detection()
-                                        if deadlock_flag:
-                                            deadlock_recovery(deadlock_processes)
                                         resource_manager.assign_resource(r_number, CPU_running[0].pid)
                                     else:
                                         RGA.add_connection("P" + str(CPU_running[0].pid), "R" + str(r.resource_number))
                                         deadlock_flag, deadlock_processes = RGA.deadlock_detection()
-                                        if deadlock_flag:
-                                            deadlock_recovery(deadlock_processes)
                                         CPU_waiting.append(CPU_running[0])
                                         CPU_running.pop(0)
                                         quantum = QUANTUM
+                                        if deadlock_flag:
+                                            deadlock_recovery(deadlock_processes)
                                         break
                             elif op_type == 'free':
                                 RGA.release_connection("R" + str(r.resource_number), "P" + str(CPU_running[0].pid))
