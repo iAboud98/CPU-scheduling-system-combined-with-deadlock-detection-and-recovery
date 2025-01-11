@@ -24,7 +24,7 @@ def deadlock_recovery(list_of_processes):
     for process in CPU_waiting[:]:
         if (process.priority == min(p.priority for p in CPU_waiting)) and (
                 any(process.pid == p.pid for p in list_of_processes)):
-            print(f"pid -> {process.pid}")
+            print(f"pid terminated -> {process.pid}")
             resource_manager.release_all_resources(process.pid)
             RGA.release_process("P" + str(process.pid))
             CPU_waiting.remove(process)
@@ -33,8 +33,8 @@ def deadlock_recovery(list_of_processes):
                 if p.pid == process.pid:
                     fresh_process = p
             processes.append(fresh_process)
-            CPU_ready.append(fresh_process)
             deadlock_processes.clear()
+            deadlock_processes.append(fresh_process)
             break
 
 
@@ -68,6 +68,10 @@ while processes:
                 CPU_ready.append(process)
                 CPU_waiting.remove(process)
                 break
+
+    if deadlock_processes:
+        CPU_ready.append(deadlock_processes[0])
+        deadlock_processes.pop(0)
 
     while not CPU_running and CPU_ready:
         for process in CPU_ready:
