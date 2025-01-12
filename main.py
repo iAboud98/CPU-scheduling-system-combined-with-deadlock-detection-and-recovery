@@ -2,8 +2,12 @@ from read_from_file import processes
 from ResourceManager import ResourceManager
 from Graph import Graph
 import copy
+from itertools import groupby
+from collections import Counter
 
-QUANTUM = 10
+QUANTUM = 2
+
+processes_num = len(processes)
 
 copy_processes = copy.deepcopy(processes)
 resource_manager = ResourceManager()
@@ -37,6 +41,12 @@ def deadlock_recovery(list_of_processes):
             deadlock_processes.append(fresh_process)
             break
 
+
+Gantt_chart = []
+running = []
+waiting_q = []
+io_q = []
+rsc_q = []
 
 while processes:
 
@@ -109,32 +119,23 @@ while processes:
                     r.free_resource()
                 CPU_running[0].sequence[0]['bursts'].pop(0)
 
-    time_line = [
-        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
-        30,
-        31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58,
-        59, 60,
-        61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88,
-        89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 110, 111, 112, 120, 125, 130, 135, 140
-    ]
+    if CPU_running:
+        Gantt_chart.append(f"P{CPU_running[0].pid}")
+    else:
+        Gantt_chart.append("idle")
 
-    # time_line = [
-    #     0, 10, 15, 20, 30, 35, 40, 50, 60, 70, 80, 90, 120, 130, 150, 160
-    # ]
-
-    if current_time in time_line:
-        print(f"current time -> {current_time}")
-        print(f"processes left ->")
-        [process.print_process() for process in processes]
-        print(f"cpu_running -> {[process.pid for process in CPU_running]}")
-        print(f"cpu_ready -> {[process.pid for process in CPU_ready]}")
-        print(f"cpu_waiting -> {[process.pid for process in CPU_waiting]}")
-        print(f"io_running -> {[process.pid for process in IO_running]}")
-        resource_manager.print_resources()
-        print(f"deadlock_processes -> {[process.pid for process in deadlock_processes]}")
-        RGA.display()
-        print(f"quantum -> {quantum}")
-        print("-----------------------------------------------------------------")
+    if CPU_ready:
+        waiting_q.append([f"P{p.pid}" for p in CPU_ready])
+    else:
+        waiting_q.append("idle")
+    if IO_running:
+        io_q.append([f"P{p.pid}" for p in IO_running])
+    else:
+        io_q.append("idle")
+    if CPU_waiting:
+        rsc_q.append([f"P{p.pid}" for p in CPU_waiting])
+    else:
+        rsc_q.append("idle")
 
     if IO_running:
         for process in IO_running[:]:
@@ -228,3 +229,37 @@ while processes:
                         quantum = QUANTUM
 
     current_time += 1
+
+result = [f"{key}({len(list(group))})" for key, group in groupby(Gantt_chart)]
+print(result)
+
+
+def flatten_and_count(lst):
+    flat_list = []  # Temporary list to store flattened items
+    # Flatten the list and count occurrences of 'P' items
+    for item in lst:
+        if isinstance(item, list):
+            flat_list.extend(flatten_and_count(item))  # Recursive call to flatten nested lists
+        elif isinstance(item, str) and item.startswith("P"):  # Only process 'P' items
+            flat_list.append(item)
+    return flat_list
+
+
+def process_queue(queue):
+    # Flatten the queue
+    flat_list = flatten_and_count(queue)
+    # Count occurrences
+    count = Counter(flat_list)
+    return dict(count)
+
+
+# Process each queue and print results
+waiting_count = process_queue(waiting_q)
+io_count = process_queue(io_q)
+rsc_count = process_queue(rsc_q)
+running_count = process_queue(Gantt_chart)
+total_turnaround = sum([waiting_count[process] for process in waiting_count]) + sum([io_count[process] for process in io_count]) + sum([rsc_count[process] for process in rsc_count]) + sum([running_count[process] for process in running_count])
+
+print(f"Average Waiting Time -> {sum([waiting_count[process] for process in waiting_count]) / len(waiting_count)}")
+print(f"Average Turn-around Time -> {total_turnaround/processes_num}")
+
