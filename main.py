@@ -225,6 +225,11 @@ while processes:
                         CPU_running.pop(0)
                         quantum = QUANTUM
 
+                    if CPU_running:
+                        if isinstance(CPU_running[0].sequence[0]["bursts"][0], int) and quantum == 0:
+                            CPU_ready.append(CPU_running[0])
+                            CPU_running.pop(0)
+
                     if quantum == 0:
                         quantum = QUANTUM
 
@@ -260,6 +265,6 @@ rsc_count = process_queue(rsc_q)
 running_count = process_queue(Gantt_chart)
 total_turnaround = sum([waiting_count[process] for process in waiting_count]) + sum([io_count[process] for process in io_count]) + sum([rsc_count[process] for process in rsc_count]) + sum([running_count[process] for process in running_count])
 
-print(f"Average Waiting Time -> {sum([waiting_count[process] for process in waiting_count]) / len(waiting_count)}")
+print(f"Average Waiting Time -> {sum([waiting_count[process] for process in waiting_count]) / processes_num}")
 print(f"Average Turn-around Time -> {total_turnaround/processes_num}")
 
