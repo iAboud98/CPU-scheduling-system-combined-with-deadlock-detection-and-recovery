@@ -4,8 +4,9 @@ from Graph import Graph
 import copy
 from itertools import groupby
 from collections import Counter
+import matplotlib.pyplot as plt
 
-QUANTUM = 2
+QUANTUM = 10
 
 processes_num = len(processes)
 
@@ -112,6 +113,7 @@ while processes:
                             CPU_waiting.append(CPU_running[0])
                             CPU_running.pop(0)
                             if deadlock_flag:
+                                print(f"Deadlock Processes -> {' ,'.join(f'P{p.pid}' for p in deadlock_processes)}")
                                 deadlock_recovery(deadlock_processes)
                             break
                 elif operation_type == 'free':
@@ -145,10 +147,8 @@ while processes:
                 CPU_ready.append(process)
                 IO_running.remove(process)
 
-        # 1: bursts = [] handeled ///// 2: bursts = [number] /////// 3: -> waiting  handeled (no quantum)
 
-    # print(quantum)
-    if CPU_running:  # 3
+    if CPU_running:
 
         if not CPU_running[0].sequence[0]['bursts']:  # 1
             CPU_running[0].sequence.pop(0)
@@ -158,7 +158,7 @@ while processes:
             else:
                 CPU_ready.append(CPU_running[0])
             CPU_running.pop(0)
-        else:  # 2
+        else:
 
             CPU_running[0].sequence[0]['bursts'][0] -= 1
             quantum -= 1
@@ -167,8 +167,6 @@ while processes:
                 CPU_ready.append(CPU_running[0])
                 CPU_running.pop(0)
                 quantum = QUANTUM
-
-            # 1: bursts = []  handeled /////////// 2: = bursts = [ resource ]
 
             elif CPU_running[0].sequence[0]['bursts'][0] == 0:
 
@@ -207,6 +205,7 @@ while processes:
                                         CPU_running.pop(0)
                                         quantum = QUANTUM
                                         if deadlock_flag:
+                                            print(f"Deadlock Processes -> {' ,'.join(f'P{p.pid}' for p in deadlock_processes)}")
                                             deadlock_recovery(deadlock_processes)
                                         break
                             elif op_type == 'free':
@@ -235,36 +234,85 @@ while processes:
 
     current_time += 1
 
-result = [f"{key}({len(list(group))})" for key, group in groupby(Gantt_chart)]
-print(result)
-
-
 def flatten_and_count(lst):
-    flat_list = []  # Temporary list to store flattened items
-    # Flatten the list and count occurrences of 'P' items
+    flat_list = []
     for item in lst:
         if isinstance(item, list):
-            flat_list.extend(flatten_and_count(item))  # Recursive call to flatten nested lists
-        elif isinstance(item, str) and item.startswith("P"):  # Only process 'P' items
+            flat_list.extend(flatten_and_count(item))
+        elif isinstance(item, str) and item.startswith("P"):
             flat_list.append(item)
     return flat_list
 
 
 def process_queue(queue):
-    # Flatten the queue
     flat_list = flatten_and_count(queue)
-    # Count occurrences
     count = Counter(flat_list)
     return dict(count)
 
 
-# Process each queue and print results
+def print_gantt_chart(gantt):
+    from itertools import groupby
+    process_durations = [(key, len(list(group))) for key, group in groupby(gantt)]
+
+    start_time = 0
+    print("Gantt Chart Representation:")
+    print("-" * 80)
+    for process, duration in process_durations:
+        print(f"{process} : {start_time} -> {start_time + duration}")
+        start_time += duration
+    print("-" * 80)
+
+
+def plot_gantt_chart(gantt, waiting_count, total_turnaround, processes_num):
+    process_durations = [(key, len(list(group))) for key, group in groupby(gantt)]
+
+    fig, ax = plt.subplots(figsize=(10, 1.5))
+    ax.set_ylim(-0.07, 0.35)
+    ax.set_xlim(0, sum(duration for _, duration in process_durations))
+
+    start_time = 0
+    for process, duration in process_durations:
+        ax.broken_barh([(start_time, duration)], (0.1, 0.1), facecolors='#89CFF0', edgecolor='black', linewidth=2)
+        ax.text(start_time + duration / 2, 0.15, process, ha='center', va='center', color='black', fontsize=12)
+        start_time += duration
+
+    ax.set_yticks([])
+    tick_positions = [0] + [sum(duration for _, duration in process_durations[:i]) for i in
+                            range(1, len(process_durations) + 1)]
+    ax.set_xticks(tick_positions)
+    ax.set_xticklabels(tick_positions)
+
+    for position in tick_positions[1:-1]:
+        ax.axvline(x=position, color='lightgray', linewidth=1, linestyle='--', ymin=0, ymax=1)
+
+    ax.spines['top'].set_color('black')
+    ax.spines['right'].set_color('black')
+    ax.spines['left'].set_color('black')
+    ax.spines['bottom'].set_color('black')
+    ax.spines['top'].set_linewidth(2)
+    ax.spines['right'].set_linewidth(2)
+    ax.spines['left'].set_linewidth(2)
+    ax.spines['bottom'].set_linewidth(2)
+
+    plt.title("Gantt Chart", fontsize=14, color='black', fontweight='bold')
+    average_waiting_time = sum([waiting_count[process] for process in waiting_count]) / processes_num
+    average_turnaround_time = total_turnaround / processes_num
+    plt.figtext(0.5, 0.1, f"Average Waiting Time = {average_waiting_time:.2f}", ha="center", fontsize=12, color='black')
+    plt.figtext(0.5, 0.07, f"Average Turn-around Time = {average_turnaround_time:.2f}", ha="center", fontsize=12,
+                color='black')
+
+    plt.grid(False)
+    plt.tight_layout()
+    plt.show()
+
+
 waiting_count = process_queue(waiting_q)
 io_count = process_queue(io_q)
 rsc_count = process_queue(rsc_q)
 running_count = process_queue(Gantt_chart)
-total_turnaround = sum([waiting_count[process] for process in waiting_count]) + sum([io_count[process] for process in io_count]) + sum([rsc_count[process] for process in rsc_count]) + sum([running_count[process] for process in running_count])
-
-print(f"Average Waiting Time -> {sum([waiting_count[process] for process in waiting_count]) / processes_num}")
-print(f"Average Turn-around Time -> {total_turnaround/processes_num}")
-
+total_turnaround = sum([waiting_count[process] for process in waiting_count]) + sum(
+    [io_count[process] for process in io_count]) + sum([rsc_count[process] for process in rsc_count]) + sum(
+    [running_count[process] for process in running_count])
+plot_gantt_chart(Gantt_chart, waiting_count, total_turnaround, processes_num)
+print("-" * 80) \
+ \

@@ -50,16 +50,13 @@ class Graph:
         return False
 
     def release_process(self, process):
-        # Remove outgoing connections from the process (resources held by the process)
         if process in self.graph_dic:
             self.graph_dic.pop(process)
 
-        # Remove incoming connections to the process (resources requesting the process)
         nodes_to_update = list(self.graph_dic.keys())
         for node in nodes_to_update:
             if process in self.graph_dic[node]:
                 self.graph_dic[node].remove(process)
-                # If the node has no more connections, remove it entirely
                 if not self.graph_dic[node]:
                     self.graph_dic.pop(node)
 
@@ -71,10 +68,8 @@ class Graph:
         for node in self.graph_dic:
             if node not in visited:
                 if self.detect_cycle_util(node, visited, rec_stack, cycle_nodes):
-                    # Filter nodes to include only processes (e.g., nodes starting with 'P')
                     dead_processes = [n for n in cycle_nodes if n.startswith('P')]
                     dead_processes = list(dict.fromkeys(dead_processes))  # Remove duplicates while preserving order
-                    # print("Deadlocked processes:", " and ".join(processes))
                     for process in dead_processes:
                         processes_list.append(get_process(processes, process))
                     return True, processes_list
