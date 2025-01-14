@@ -1,3 +1,5 @@
+#########################################################################################################
+# -> Libraries/classes/results imported as follows:
 from read_from_file import processes
 from ResourceManager import ResourceManager
 from Graph import Graph
@@ -6,63 +8,74 @@ from itertools import groupby
 from collections import Counter
 import matplotlib.pyplot as plt
 
-QUANTUM = 10
+#########################################################################################################
 
-processes_num = len(processes)
+QUANTUM = 10  # -> Quantum value as constant
 
-copy_processes = copy.deepcopy(processes)
-resource_manager = ResourceManager()
+processes_num = len(processes)  # -> number of processes in the system
 
-current_time = 0
+copy_processes = copy.deepcopy(processes)  # -> make copy of processes list to get values form it
 
-CPU_running = []
-CPU_ready = []
-CPU_waiting = []
-IO_running = []
-deadlock_processes = []
-quantum = QUANTUM
+CPU_running = []  # -> Running queue as list
+CPU_ready = []  # -> ready queue as list
+CPU_waiting = []  # -> waiting queue
+IO_running = []  # -> list where IO terminate
+deadlock_processes = []  # -> deadlock processes list
 
-RGA = Graph()
+RGA = Graph()  # -> make instance of graph
+resource_manager = ResourceManager()  # -> make instance of ResourceManager
+
+current_time = 0  # -> set initial time to 0
+quantum = QUANTUM  # -> set quantum
 
 
-def deadlock_recovery(list_of_processes):
-    for process in CPU_waiting[:]:
-        if (process.priority == min(p.priority for p in CPU_waiting)) and (
+def deadlock_recovery(list_of_processes):  # -> Method to recover the system from deadlock
+    for process in CPU_waiting[:]:  # -> iterate over a copy list of CPU_waiting
+        if (process.priority == min(p.priority for p in CPU_waiting)) and (  # -> choose process to terminate
                 any(process.pid == p.pid for p in list_of_processes)):
-            print(f"pid terminated -> {process.pid}")
-            resource_manager.release_all_resources(process.pid)
-            RGA.release_process("P" + str(process.pid))
-            CPU_waiting.remove(process)
-            processes.remove(process)
+            print(f"pid terminated -> P{process.pid}")  # -> print terminated Process
+            resource_manager.release_all_resources(process.pid)  # -> release all resources related
+            RGA.release_process("P" + str(process.pid))  # -> release all vertexes and edges related
+            CPU_waiting.remove(process)  # -> remove process from waiting queue
+            processes.remove(process)  # -> remove process from processes list
             for p in copy_processes:
                 if p.pid == process.pid:
                     fresh_process = p
-            processes.append(fresh_process)
+            processes.append(fresh_process)  # -> add fresh process to processes ( make process new )
             deadlock_processes.clear()
-            deadlock_processes.append(fresh_process)
-            break
+            deadlock_processes.append(fresh_process)  # -> add it to deadlock list
+            break  # -> get out of loop
 
 
+####################################################################################################################
+# -> Lists only used for printing
 Gantt_chart = []
 running = []
 waiting_q = []
 io_q = []
 rsc_q = []
+####################################################################################################################
 
-while processes:
+while processes:  # -> keep iterating while process list is not empty
 
-    for process in processes:
+    for process in processes:  # -> at first check the arrival time of each process
         if process.arrival_time == current_time:
-            CPU_ready.append(process)
+            CPU_ready.append(process)  # -> add to ready queue
 
-    if CPU_ready:
-        for process in CPU_ready[:]:
+    if CPU_ready:  # -> if ready queue is not empty
+        for process in CPU_ready[:]:  # -> iterate over ready queue to check if any process has to do IO bursts
             if process.sequence[0]['type'] == 'io':
-                IO_running.append(process)
-                CPU_ready.remove(process)
+                IO_running.append(process)  # -> add process to IO
+                CPU_ready.remove(process)  # -> remove process from ready queue
 
-    if CPU_waiting:
-        CPU_waiting.sort(key=lambda p: p.priority)
+    if CPU_waiting:  # -> if waiting queue is not empty
+        CPU_waiting.sort(key=lambda p: p.priority)  # -> sort it based on priority, most priority -> least priority
+
+        # -> now after we sort waiting queue :
+        ################################################################################################
+        # -> the purpose of this part is to check if process first sequence bursts are resource request/free
+        # -> like : ['bursts'] = [R[1],R[2],R[3],...]
+        # -> it checks if all resource requests sequence of it ( they followed by each other ) are available or not
 
         for process in CPU_waiting[:]:
             flag = True
@@ -79,37 +92,41 @@ while processes:
                 CPU_ready.append(process)
                 CPU_waiting.remove(process)
                 break
+        ################################################################################################
 
-    if deadlock_processes:
+    if deadlock_processes:  # -> move terminated process to ready queue
         CPU_ready.append(deadlock_processes[0])
         deadlock_processes.pop(0)
 
-    while not CPU_running and CPU_ready:
-        for process in CPU_ready:
+    ####################################################################################################################
+    # -> The purpose of this part below is to add process to running queue from ready queue
+
+    while not CPU_running and CPU_ready:  # -> if running queue is empty and ready queue is not
+        for process in CPU_ready:  # -> move most priority in ready queue to running
             if process.priority == min(p.priority for p in CPU_ready):
                 CPU_running.append(process)
                 CPU_ready.remove(process)
                 break
 
-        while CPU_running[0].sequence[0]['bursts']:
+        while CPU_running[0].sequence[0]['bursts']:  # -> Handle resource request/free if they came first of sequence
             if isinstance(CPU_running[0].sequence[0]['bursts'][0], int):
                 break
             else:
                 operation_type, resource_number = CPU_running[0].analyze_input()
                 r = resource_manager.request_resource(resource_number)
                 if operation_type == 'request':
-                    if r is None:
+                    if r is None:  # -> not created yet ( None ), then I create it and assign it
                         resource_manager.add_resource(resource_number)
                         r = resource_manager.request_resource(resource_number)
                         RGA.add_connection("R" + str(r.resource_number), "P" + str(CPU_running[0].pid))
                         resource_manager.assign_resource(resource_number, CPU_running[0].pid)
                     else:
-                        if r.is_available():
+                        if r.is_available():  # -> if resource is available, assign it
                             RGA.add_connection("R" + str(r.resource_number), "P" + str(CPU_running[0].pid))
                             resource_manager.assign_resource(resource_number, CPU_running[0].pid)
-                        else:
+                        else:  # -> if not available, save the request and move it to waiting queue
                             RGA.add_connection("P" + str(CPU_running[0].pid), "R" + str(r.resource_number))
-                            deadlock_flag, deadlock_processes = RGA.deadlock_detection()
+                            deadlock_flag, deadlock_processes = RGA.deadlock_detection()  # -> detect deadlock
                             CPU_waiting.append(CPU_running[0])
                             CPU_running.pop(0)
                             if deadlock_flag:
@@ -120,6 +137,7 @@ while processes:
                     RGA.release_connection("R" + str(r.resource_number), "P" + str(CPU_running[0].pid))
                     r.free_resource()
                 CPU_running[0].sequence[0]['bursts'].pop(0)
+    ####################################################################################################################
 
     if CPU_running:
         Gantt_chart.append(f"P{CPU_running[0].pid}")
@@ -139,20 +157,19 @@ while processes:
     else:
         rsc_q.append("idle")
 
-    if IO_running:
+    if IO_running:  # -> act like one time unit passed, so we change value of all IO processes
         for process in IO_running[:]:
             process.sequence[0]['bursts'][0] -= 1
-            if process.sequence[0]['bursts'][0] == 0:
+            if process.sequence[0]['bursts'][0] == 0:  # -> if finished, move to ready queue
                 process.sequence.pop(0)
                 CPU_ready.append(process)
                 IO_running.remove(process)
 
-
     if CPU_running:
 
-        if not CPU_running[0].sequence[0]['bursts']:  # 1
+        if not CPU_running[0].sequence[0]['bursts']:  # -> if no CPU bursts left, remove process from running
             CPU_running[0].sequence.pop(0)
-            if not CPU_running[0].sequence:
+            if not CPU_running[0].sequence: # -> if no IO/CPU bursts left, delete the whole process
                 index = [i for i, process in enumerate(processes) if process.pid == CPU_running[0].pid][0]
                 processes.pop(index)
             else:
@@ -160,19 +177,19 @@ while processes:
             CPU_running.pop(0)
         else:
 
-            CPU_running[0].sequence[0]['bursts'][0] -= 1
-            quantum -= 1
+            CPU_running[0].sequence[0]['bursts'][0] -= 1  # -> decrease burst value by one time unit
+            quantum -= 1  # -> decrease quantum value by one time unit
 
-            if (quantum == 0) and (CPU_running[0].sequence[0]['bursts'][0] != 0):
-                CPU_ready.append(CPU_running[0])
+            if (quantum == 0) and (CPU_running[0].sequence[0]['bursts'][0] != 0):  # -> if quantum finished but not bursts
+                CPU_ready.append(CPU_running[0])  # -> move to ready queue
                 CPU_running.pop(0)
-                quantum = QUANTUM
+                quantum = QUANTUM  # -> refresh quantum
 
-            elif CPU_running[0].sequence[0]['bursts'][0] == 0:
+            elif CPU_running[0].sequence[0]['bursts'][0] == 0:  # -> if burst now finished
 
                 CPU_running[0].sequence[0]['bursts'].pop(0)
 
-                if not CPU_running[0].sequence[0]['bursts']:  # 1
+                if not CPU_running[0].sequence[0]['bursts']:  # if no bursts left in CPU burst
                     CPU_running[0].sequence.pop(0)
                     if not CPU_running[0].sequence:
                         index = [i for i, process in enumerate(processes) if process.pid == CPU_running[0].pid][0]
@@ -181,7 +198,9 @@ while processes:
                         CPU_ready.append(CPU_running[0])
                     CPU_running.pop(0)
                     quantum = QUANTUM
-                else:  # 2
+                else:
+                    ####################################################################################################
+                    # -> this part of code to handle resource request/free and deadlock detection and recovery
                     while CPU_running[0].sequence[0]['bursts']:
                         if isinstance(CPU_running[0].sequence[0]['bursts'][0], int):
                             break
@@ -205,15 +224,17 @@ while processes:
                                         CPU_running.pop(0)
                                         quantum = QUANTUM
                                         if deadlock_flag:
-                                            print(f"Deadlock Processes -> {' ,'.join(f'P{p.pid}' for p in deadlock_processes)}")
+                                            print(
+                                                f"Deadlock Processes -> {' ,'.join(f'P{p.pid}' for p in deadlock_processes)}")
                                             deadlock_recovery(deadlock_processes)
                                         break
                             elif op_type == 'free':
                                 RGA.release_connection("R" + str(r.resource_number), "P" + str(CPU_running[0].pid))
                                 r.free_resource()
                             CPU_running[0].sequence[0]['bursts'].pop(0)
+                    ####################################################################################################
 
-                    if CPU_running and not CPU_running[0].sequence[0]['bursts']:  # 1
+                    if CPU_running and not CPU_running[0].sequence[0]['bursts']:  # -> if nothing left in CPU bursts
                         CPU_running[0].sequence.pop(0)
                         if not CPU_running[0].sequence:
                             index_v2 = [i for i, process in enumerate(processes) if process.pid == CPU_running[0].pid][
@@ -224,32 +245,34 @@ while processes:
                         CPU_running.pop(0)
                         quantum = QUANTUM
 
-                    if CPU_running:
+                    if CPU_running:  # -> if quantum finished, but cpu bursts did not
                         if isinstance(CPU_running[0].sequence[0]["bursts"][0], int) and quantum == 0:
                             CPU_ready.append(CPU_running[0])
                             CPU_running.pop(0)
 
-                    if quantum == 0:
+                    if quantum == 0:  # -> refresh quantum
                         quantum = QUANTUM
 
-    current_time += 1
+    current_time += 1  # -> increase current time by one
+
 
 def flatten_and_count(lst):
     flat_list = []
     for item in lst:
-        if isinstance(item, list):
-            flat_list.extend(flatten_and_count(item))
-        elif isinstance(item, str) and item.startswith("P"):
+        if isinstance(item, list):  # case -> [['P1','P2','P3',..]]
+            flat_list.extend(flatten_and_count(item))  # -> recursive call
+        elif isinstance(item, str) and item.startswith("P"):  # normal case -> ['P1']
             flat_list.append(item)
     return flat_list
 
 
 def process_queue(queue):
     flat_list = flatten_and_count(queue)
-    count = Counter(flat_list)
-    return dict(count)
+    count = Counter(flat_list)  # -> count how many times each process occurs
+    return dict(count)  # -> make it as dictionary
 
 
+# -> interface output ( ChatGPT use ), we managed to measure Average (waiting/turnaround) time using methods above
 def print_gantt_chart(gantt):
     from itertools import groupby
     process_durations = [(key, len(list(group))) for key, group in groupby(gantt)]
@@ -314,5 +337,5 @@ total_turnaround = sum([waiting_count[process] for process in waiting_count]) + 
     [io_count[process] for process in io_count]) + sum([rsc_count[process] for process in rsc_count]) + sum(
     [running_count[process] for process in running_count])
 plot_gantt_chart(Gantt_chart, waiting_count, total_turnaround, processes_num)
-print("-" * 80) \
- \
+print("-" * 80)
+
